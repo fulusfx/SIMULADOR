@@ -60,7 +60,7 @@ async function loadQuestions() {
   const text = await response.text();
   const rows = text.trim().split("\n");
   QUESTION_BANK = rows.map(row => {
-    const [id, pregunta, A, B, C, D, correcta] = row.split(",");
+    const [id, pregunta, A, B, C, D, correcta] = row.split(";");
     return { id:Number(id), pregunta, A, B, C, D, correcta };
   });
 }
@@ -147,3 +147,4 @@ document.getElementById("downloadCsvBtn").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
