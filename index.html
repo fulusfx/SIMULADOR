@@ -134,6 +134,25 @@
         </div>
     </div>
 
+    <!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // Inicializar Firebase
+  const firebaseConfig = {
+  apiKey: "AIzaSyA2dDTanG2_P-loZfrk8SNERTh90Jh26IY",
+  authDomain: "simuladorbiologia-53696.firebaseapp.com",
+  projectId: "simuladorbiologia-53696",
+  storageBucket: "simuladorbiologia-53696.firebasestorage.app",
+  messagingSenderId: "184750071858",
+  appId: "1:184750071858:web:605331dd46e3119cd81c2b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore(); // Conexión a Firestore
+</script>
+
+
     <script>
         // ===== Variables globales =====
         let preguntas = [];
@@ -283,3 +302,4 @@
     </script>
 </body>
 </html>
+
