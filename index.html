@@ -1,510 +1,252 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulador de Examen de Biología</title>
-  <style>
-    /* Modo oscuro y diseño estilo examen universitario */
-    :root {
-      --bg: #0b0f19;
-      --card: #111827;
-      --accent: #00e1ff;
-      --muted: #94a3b8;
-      --panel: #0f1724;
-      --success: #10b981;
-    }
-    *{box-sizing:border-box}
-    body {
-      font-family: Inter, Arial, sans-serif;
-      margin: 0;
-      background: linear-gradient(180deg,#061125 0%, #0b0f19 100%);
-      color: #e6f6ff;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-    }
-    header{
-      background: linear-gradient(90deg, rgba(0,225,255,0.06), rgba(0,225,255,0.02));
-      padding: 18px 12px;
-      text-align:center;
-      border-bottom: 2px solid rgba(0,225,255,0.06);
-      color: var(--accent);
-      font-weight:700;
-      font-size:20px;
-    }
-    .wrap{max-width:980px;margin:20px auto;padding:12px;}
-    .card{
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 10px 30px rgba(2,6,23,0.6);
-    }
-    label{display:block;color:var(--muted);font-weight:600;margin-bottom:6px}
-    input[type=text], input[type=password], select, textarea{
-      width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;
-      margin-bottom:12px;
-    }
-    button{
-      background:var(--accent);color:#021018;border:none;padding:10px 14px;border-radius:8px;font-weight:700;cursor:pointer;
-    }
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .row{display:flex;gap:12px}
-    .row > *{flex:1}
-    .small{font-size:13px;color:var(--muted)}
-    .question{background:#0f1724;padding:12px;border-radius:8px;margin-bottom:12px;border-left:4px solid rgba(0,225,255,0.06)}
-    table{width:100%;border-collapse:collapse;margin-top:12px}
-    th,td{padding:8px;border:1px solid rgba(255,255,255,0.04);font-size:14px}
-    th{background:var(--accent);color:#011618}
-    .right{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-    .muted{color:var(--muted)}
-    footer{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
-    @media(max-width:720px){.row{flex-direction:column}}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Examen de Biología</title>
+    <style>
+        /* ===== Estilos básicos y responsive ===== */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            width: 95%;
+            max-width: 800px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            box-sizing: border-box;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .question-container {
+            margin-top: 20px;
+        }
+        .options label {
+            display: block;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .timer {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        @media(max-width: 600px){
+            .navigation button {
+                width: 48%;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>SIMULADOR DE EXAMEN — BIOLOGÍA (USFX)</header>
-  <div class="wrap">
-
-    <!-- Registro inicial -->
-    <div class="card" id="registroCard">
-      <h2>Datos del postulante</h2>
-      <div class="small muted">Ingresa tu nombre completo, celular y carrera. El examen comenzará al presionar "Comenzar Examen".</div>
-      <label>Nombre completo</label>
-      <input id="nombre" type="text" placeholder="Ej: María Pérez" />
-
-      <label>Celular</label>
-      <input id="celular" type="text" placeholder="Ej: 79012345" />
-
-      <label>Carrera</label>
-      <input id="carrera" type="text" placeholder="Ej: Biología" />
-
-      <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
-        <button id="startBtn">Comenzar Examen</button>
-        <button id="loadSample" class="ghost">Verificar preguntas (CSV)</button>
-      </div>
-      <div id="statusLoad" class="small muted" style="margin-top:10px"></div>
-    </div>
-
-    <!-- Área examen -->
-    <div class="card" id="examenCard" style="display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-        <div>
-          <div style="font-weight:700" id="studentName">—</div>
-          <div class="small muted" id="studentMeta">—</div>
+    <div class="container" id="app">
+        <!-- Formulario inicial -->
+        <div id="formulario">
+            <h1>Simulador Examen de Biología</h1>
+            <label for="nombre">Nombre completo:</label>
+            <input type="text" id="nombre" required>
+            <label for="celular">Celular:</label>
+            <input type="tel" id="celular" required pattern="[0-9]{6,15}" title="Ingrese un número válido">
+            <label for="carrera">Carrera:</label>
+            <input type="text" id="carrera" required>
+            <button id="iniciar">Iniciar Examen</button>
         </div>
-        <div style="text-align:right">
-          <div style="font-weight:800;font-size:18px" id="timer">40:00</div>
-          <div class="small muted">Cada pregunta vale 2.5 puntos</div>
+
+        <!-- Contenedor de examen -->
+        <div id="examen" style="display:none;">
+            <div class="timer" id="timer">Tiempo: 40:00</div>
+            <div class="question-container">
+                <h2 id="pregunta-texto"></h2>
+                <div class="options" id="opciones"></div>
+            </div>
+            <div class="navigation">
+                <button id="prevBtn">Anterior</button>
+                <button id="nextBtn">Siguiente</button>
+            </div>
         </div>
-      </div>
 
-      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:12px 0" />
-
-      <div id="preguntasCont"></div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div class="small muted">Preguntas seleccionadas aleatoriamente desde <code>preguntas.csv</code></div>
-        <div>
-          <button id="finishBtn">Terminar y Calificar</button>
-          <button id="pauseBtn" class="ghost">Pausar</button>
+        <!-- Resultados -->
+        <div id="resultado" style="display:none;">
+            <h1>Resultado del Examen</h1>
+            <p id="puntaje"></p>
+            <p id="estado"></p>
         </div>
-      </div>
     </div>
 
-    <!-- Resultado-->
-    <div class="card" id="resultCard" style="display:none;">
-      <h3>Resultado</h3>
-      <div id="scoreText" style="font-size:18px;font-weight:800"></div>
-      <div id="statusText" style="margin-top:8px;font-size:16px"></div>
-      <div style="margin-top:12px;display:flex;gap:10px">
-        <button id="btnViewAdmin" class="ghost">Abrir Panel Administrador</button>
-        <button id="btnDownloadLocal" class="ghost">Descargar registro local (CSV)</button>
-      </div>
-    </div>
+    <script>
+        // ===== Variables globales =====
+        let preguntas = [];
+        let seleccionadas = [];
+        let respuestasUsuario = [];
+        let tiempo = 40 * 60; // 40 minutos en segundos
+        let timerInterval;
+        let indexPregunta = 0;
 
-    <!-- Login admin -->
-    <div class="card" id="loginAdmin" style="display:none;">
-      <h3>Acceso Administrador</h3>
-      <div class="small muted">Introduce la contraseña para ver el panel (contraseña por defecto: <code>USFX2025</code>). Puedes cambiarla en el código.</div>
-      <label>Contraseña</label>
-      <input id="passAdmin" type="password" placeholder="Contraseña" />
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="btnLogin">Ingresar</button>
-        <button id="btnCancelLogin" class="ghost">Cancelar</button>
-      </div>
-    </div>
+        const formulario = document.getElementById('formulario');
+        const examen = document.getElementById('examen');
+        const resultado = document.getElementById('resultado');
+        const timerDisplay = document.getElementById('timer');
+        const preguntaTexto = document.getElementById('pregunta-texto');
+        const opcionesDiv = document.getElementById('opciones');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
 
-    <!-- Panel Admin -->
-    <div class="card" id="adminPanel" style="display:none;">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3>Panel Administrador</h3>
-        <div class="right">
-          <button id="btnRefresh">Actualizar Datos</button>
-          <button id="btnExport">Descargar Excel (CSV)</button>
-        </div>
-      </div>
+        // ===== Función para cargar CSV =====
+        async function cargarPreguntas() {
+            const response = await fetch('preguntas.csv');
+            const data = await response.text();
+            const filas = data.split('\n');
+            filas.forEach(fila => {
+                const cols = fila.split(';');
+                if(cols.length === 7){
+                    preguntas.push({
+                        id: cols[0],
+                        pregunta: cols[1],
+                        opciones: [cols[2], cols[3], cols[4], cols[5]],
+                        respuesta: cols[6].trim().toUpperCase()
+                    });
+                }
+            });
+        }
 
-      <div class="small muted" style="margin-top:8px">Lista en tiempo real de postulantes guardados en Firestore.</div>
+        // ===== Función para seleccionar preguntas aleatorias =====
+        function seleccionarPreguntas() {
+            let temp = [...preguntas];
+            seleccionadas = [];
+            for(let i=0; i<40 && temp.length>0; i++){
+                const idx = Math.floor(Math.random() * temp.length);
+                seleccionadas.push(temp[idx]);
+                temp.splice(idx, 1);
+                respuestasUsuario.push(null); // Inicializamos respuestas
+            }
+        }
 
-      <table id="tablaResultados" style="margin-top:12px">
-        <thead>
-          <tr><th>Nombre</th><th>Celular</th><th>Carrera</th><th>Nota</th><th>Fecha</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+        // ===== Función para mostrar pregunta actual =====
+        function mostrarPregunta() {
+            const q = seleccionadas[indexPregunta];
+            preguntaTexto.textContent = `Pregunta ${indexPregunta+1}: ${q.pregunta}`;
+            opcionesDiv.innerHTML = '';
+            ['A','B','C','D'].forEach((letra, i) => {
+                const label = document.createElement('label');
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'opcion';
+                radio.value = letra;
+                if(respuestasUsuario[indexPregunta] === letra) radio.checked = true;
+                label.appendChild(radio);
+                label.append(` ${letra}: ${q.opciones[i]}`);
+                opcionesDiv.appendChild(label);
+            });
+            prevBtn.style.display = indexPregunta === 0 ? 'none' : 'inline-block';
+            nextBtn.textContent = indexPregunta === seleccionadas.length-1 ? 'Finalizar' : 'Siguiente';
+        }
 
-    <footer class="small muted">Diseñado para práctica. Revisa reglas de seguridad en Firestore para producción.</footer>
-  </div>
+        // ===== Función para guardar respuesta =====
+        function guardarRespuesta() {
+            const radios = document.getElementsByName('opcion');
+            radios.forEach(r => {
+                if(r.checked) respuestasUsuario[indexPregunta] = r.value;
+            });
+        }
 
-  <!-- Firebase SDKs (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+        // ===== Función para calcular puntaje =====
+        function calcularResultado() {
+            let puntaje = 0;
+            seleccionadas.forEach((q,i) => {
+                if(respuestasUsuario[i] === q.respuesta) puntaje += 2.5;
+            });
+            document.getElementById('puntaje').textContent = `Puntaje: ${puntaje.toFixed(2)}/100`;
+            let estado = 'No Aprobado';
+            if(puntaje > 81) estado = 'Admitido';
+            else if(puntaje > 51) estado = 'Aprobado';
+            document.getElementById('estado').textContent = `Estado: ${estado}`;
+            examen.style.display = 'none';
+            resultado.style.display = 'block';
+            clearInterval(timerInterval);
+        }
 
-  <script>
-  /***************************************************************
-   * INDEX.HTML — Simulador de examen corregido y completo
-   * - Asegúrate de tener preguntas.csv en la misma carpeta.
-   * - Este archivo usa Firestore. Config ya pegada más abajo.
-   ***************************************************************/
+        // ===== Función de temporizador =====
+        function iniciarTimer() {
+            timerInterval = setInterval(() => {
+                if(tiempo <= 0){
+                    calcularResultado();
+                } else {
+                    let min = Math.floor(tiempo / 60);
+                    let seg = tiempo % 60;
+                    timerDisplay.textContent = `Tiempo: ${min.toString().padStart(2,'0')}:${seg.toString().padStart(2,'0')}`;
+                    tiempo--;
+                }
+            }, 1000);
+        }
 
-  // ---------- Configuración Firebase (la que pegaste) ----------
-  const firebaseConfig = {
-    apiKey: "AIzaSyApKOiLEh8R0SatT0EluTRoPpQYGQ_bDnM",
-    authDomain: "simu-diego.firebaseapp.com",
-    projectId: "simu-diego",
-    storageBucket: "simu-diego.firebasestorage.app",
-    messagingSenderId: "304869129428",
-    appId: "1:304869129428:web:fca0d00bd230afad248f41"
-  };
-
-  // Inicializar Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-
-  // ---------- Variables ----------
-  let allQuestions = [];       // cargadas desde CSV
-  let examQuestions = [];      // seleccionadas aleatoriamente
-  let answers = {};            // respuestas del alumno
-  let timerInterval = null;
-  let timeLeft = 40 * 60;
-  let examStarted = false;
-  let currentAdminData = [];   // array con registros para exportar
-
-  // ---------- Elementos DOM ----------
-  const startBtn = document.getElementById('startBtn');
-  const loadSample = document.getElementById('loadSample');
-  const statusLoad = document.getElementById('statusLoad');
-  const registroCard = document.getElementById('registroCard');
-  const examenCard = document.getElementById('examenCard');
-  const preguntasCont = document.getElementById('preguntasCont');
-  const timerEl = document.getElementById('timer');
-  const studentNameEl = document.getElementById('studentName');
-  const studentMetaEl = document.getElementById('studentMeta');
-  const finishBtn = document.getElementById('finishBtn');
-  const pauseBtn = document.getElementById('pauseBtn');
-  const resultCard = document.getElementById('resultCard');
-  const scoreText = document.getElementById('scoreText');
-  const statusText = document.getElementById('statusText');
-  const btnViewAdmin = document.getElementById('btnViewAdmin');
-  const btnDownloadLocal = document.getElementById('btnDownloadLocal');
-
-  const loginAdmin = document.getElementById('loginAdmin');
-  const btnLogin = document.getElementById('btnLogin');
-  const btnCancelLogin = document.getElementById('btnCancelLogin');
-  const passAdmin = document.getElementById('passAdmin');
-
-  const adminPanel = document.getElementById('adminPanel');
-  const btnRefresh = document.getElementById('btnRefresh');
-  const btnExport = document.getElementById('btnExport');
-  const tablaBody = document.querySelector('#tablaResultados tbody');
-
-  // ---------- Funciones utilitarias ----------
-  function escapeCsvCell(s){
-    if(s === null || s === undefined) return '';
-    s = String(s);
-    if(/[",;\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-
-  // ---------- Cargar CSV (preguntas.csv) ----------
-  async function loadQuestionsCSV(){
-    try{
-      const r = await fetch('preguntas.csv', {cache: "no-store"});
-      if(!r.ok) throw new Error('No se encontró preguntas.csv (verifica que esté en la misma carpeta)');
-      const text = await r.text();
-      // separar por líneas (Windows y Unix)
-      const lines = text.trim().split(/\r?\n/);
-      // si hay encabezado y la primera fila contiene "ID" o "Pregunta", la omitimos
-      let dataLines = lines;
-      if(lines.length > 0){
-        const header = lines[0].toLowerCase();
-        if(header.includes('id') && header.includes('pregunta')) dataLines = lines.slice(1);
-      }
-      allQuestions = dataLines
-        .map(l => l.trim())
-        .filter(l => l.length > 0)
-        .map(l => {
-          const parts = l.split(';');
-          // asegurar que existan 7 columnas (si no, rellenar vacías)
-          while(parts.length < 7) parts.push('');
-          return {
-            id: parts[0].trim(),
-            pregunta: parts[1].trim(),
-            A: parts[2].trim(),
-            B: parts[3].trim(),
-            C: parts[4].trim(),
-            D: parts[5].trim(),
-            correcta: (parts[6]||'').trim().toUpperCase()
-          };
+        // ===== Evento iniciar examen =====
+        document.getElementById('iniciar').addEventListener('click', async () => {
+            const nombre = document.getElementById('nombre').value.trim();
+            const celular = document.getElementById('celular').value.trim();
+            const carrera = document.getElementById('carrera').value.trim();
+            if(nombre === '' || celular === '' || carrera === ''){
+                alert('Por favor complete todos los campos.');
+                return;
+            }
+            formulario.style.display = 'none';
+            examen.style.display = 'block';
+            await cargarPreguntas();
+            seleccionarPreguntas();
+            mostrarPregunta();
+            iniciarTimer();
         });
-      statusLoad.textContent = `Preguntas cargadas: ${allQuestions.length}`;
-      return true;
-    }catch(err){
-      statusLoad.textContent = 'Error cargando preguntas.csv — ' + err.message;
-      return false;
-    }
-  }
 
-  // vista rápida del CSV (para verificar)
-  loadSample.addEventListener('click', async ()=>{
-    const ok = await loadQuestionsCSV();
-    if(!ok) return;
-    const preview = allQuestions.slice(0,6).map((q,i)=> `${i+1}) ${q.pregunta}\n A) ${q.A}\n B) ${q.B}\n C) ${q.C}\n D) ${q.D}\n Resp: ${q.correcta}`).join('\n\n');
-    alert('Preview (primeras 6 preguntas):\n\n' + preview);
-  });
+        // ===== Eventos de navegación =====
+        nextBtn.addEventListener('click', () => {
+            guardarRespuesta();
+            if(indexPregunta === seleccionadas.length-1){
+                calcularResultado();
+            } else {
+                indexPregunta++;
+                mostrarPregunta();
+            }
+        });
 
-  // ---------- Start exam ----------
-  startBtn.addEventListener('click', async ()=>{
-    const nombre = document.getElementById('nombre').value.trim();
-    const celular = document.getElementById('celular').value.trim();
-    const carrera = document.getElementById('carrera').value.trim();
-    if(!nombre || !celular || !carrera){
-      alert('Por favor completa: nombre, celular y carrera.');
-      return;
-    }
-    const ok = await loadQuestionsCSV();
-    if(!ok) return;
-    if(allQuestions.length === 0){
-      alert('No hay preguntas en preguntas.csv');
-      return;
-    }
+        prevBtn.addEventListener('click', () => {
+            guardarRespuesta();
+            if(indexPregunta > 0){
+                indexPregunta--;
+                mostrarPregunta();
+            }
+        });
 
-    // preparar examen
-    examQuestions = shuffle(allQuestions).slice(0, Math.min(40, allQuestions.length));
-    answers = {};
-    timeLeft = 40*60;
-    examStarted = true;
-
-    // UI
-    registroCard.style.display = 'none';
-    examenCard.style.display = 'block';
-    resultCard.style.display = 'none';
-    studentNameEl.textContent = nombre;
-    studentMetaEl.textContent = `${carrera} • ${celular}`;
-
-    renderExamQuestions();
-    updateTimerUI();
-    timerInterval = setInterval(()=>{
-      if(timeLeft <= 0){
-        clearInterval(timerInterval); timerInterval = null;
-        autoSubmit();
-      } else {
-        timeLeft--; updateTimerUI();
-      }
-    }, 1000);
-  });
-
-  function shuffle(a){ return a.slice().sort(()=>Math.random()-0.5); }
-
-  function renderExamQuestions(){
-    preguntasCont.innerHTML = '';
-    examQuestions.forEach((q, idx)=>{
-      const div = document.createElement('div');
-      div.className = 'question';
-      div.innerHTML = `
-        <div style="display:flex;justify-content:space-between"><div style="font-weight:700">Pregunta ${idx+1}</div><div class="small muted">ID: ${escapeHtml(q.id)}</div></div>
-        <div style="margin-top:8px">${escapeHtml(q.pregunta)}</div>
-        <div style="margin-top:8px">
-          ${renderOption(q,'A',idx)}
-          ${renderOption(q,'B',idx)}
-          ${renderOption(q,'C',idx)}
-          ${renderOption(q,'D',idx)}
-        </div>
-      `;
-      preguntasCont.appendChild(div);
-    });
-
-    // escuchar cambios para actualizar answers
-    preguntasCont.querySelectorAll('input[type=radio]').forEach(r=>{
-      r.addEventListener('change', e=>{
-        const i = r.dataset.qindex;
-        answers[i] = r.value;
-      });
-    });
-  }
-
-  function renderOption(q,opt,idx){
-    const text = q[opt] || '';
-    // data-qindex para saber qué pregunta
-    return `<label style="display:block;margin-bottom:6px"><input data-qindex="${idx}" type="radio" name="q${idx}" value="${opt}"> <strong>${opt}.</strong> ${escapeHtml(text)}</label>`;
-  }
-
-  function escapeHtml(s){
-    if(!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function updateTimerUI(){ timerEl.textContent = `${Math.floor(timeLeft/60)}:${String(timeLeft%60).padStart(2,'0')}`; }
-
-  document.getElementById('pauseBtn').addEventListener('click', ()=>{
-    if(!examStarted) return;
-    if(timerInterval){
-      clearInterval(timerInterval); timerInterval = null;
-      pauseBtn.textContent = 'Reanudar';
-    } else {
-      timerInterval = setInterval(()=>{
-        if(timeLeft <= 0){ clearInterval(timerInterval); timerInterval=null; autoSubmit(); }
-        else { timeLeft--; updateTimerUI(); }
-      },1000);
-      pauseBtn.textContent = 'Pausar';
-    }
-  });
-
-  function autoSubmit(){
-    alert('Tiempo finalizado. Se enviará automáticamente.');
-    submitExam();
-  }
-
-  finishBtn.addEventListener('click', ()=>{
-    if(!examStarted) return;
-    if(confirm('¿Deseas terminar el examen y calificar ahora?')) submitExam();
-  });
-
-  // ---------- Calificación y guardado ----------
-  async function submitExam(){
-    examStarted = false;
-    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
-    // calcular puntaje
-    let score = 0;
-    const per = 2.5;
-    const results = [];
-    examQuestions.forEach((q, i)=>{
-      const user = answers[i] || '';
-      const ok = (user && q.correcta && user === q.correcta);
-      if(ok) score += per;
-      results.push({index:i, pregunta:q.pregunta, user, correct:q.correcta, ok});
-    });
-    score = Math.round(score*100)/100;
-    let status = score > 81 ? 'Admitido' : (score > 51 ? 'Aprobado' : 'Reprobado');
-
-    // UI
-    examenCard.style.display = 'none';
-    resultCard.style.display = 'block';
-    scoreText.textContent = `Nota: ${score} / ${examQuestions.length * per}`;
-    statusText.textContent = status;
-
-    // guardar en Firestore
-    const payload = {
-      nombre: document.getElementById('nombre').value.trim(),
-      celular: document.getElementById('celular').value.trim(),
-      carrera: document.getElementById('carrera').value.trim(),
-      nota: score,
-      estado: status,
-      fecha: new Date().toISOString(),
-      totalPreguntas: examQuestions.length
-    };
-
-    try{
-      await db.collection('postulantes').add(payload);
-      statusLoad.textContent = 'Resultado guardado en Firestore correctamente.';
-    }catch(err){
-      statusLoad.textContent = 'Error guardando en Firestore: ' + err.message;
-    }
-
-    // preparar descarga local CSV
-    btnDownloadLocal.onclick = ()=>{
-      const header = 'nombre;celular;carrera;nota;estado;fecha;totalPreguntas\n';
-      const row = `${escapeCsvCell(payload.nombre)};${escapeCsvCell(payload.celular)};${escapeCsvCell(payload.carrera)};${payload.nota};${payload.estado};${payload.fecha};${payload.totalPreguntas}\n`;
-      const blob = new Blob([header + row], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `registro_${payload.nombre.replace(/\s+/g,'_')}.csv`;
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    };
-
-    // boton para abrir login admin
-    btnViewAdmin.onclick = ()=>{
-      loginAdmin.style.display = 'block';
-      adminPanel.style.display = 'none';
-      passAdmin.value = '';
-    };
-  }
-
-  // ---------- Admin login / panel ----------
-  btnLogin.addEventListener('click', ()=>{
-    const pass = passAdmin.value;
-    // contraseña por defecto (puedes cambiarla aquí)
-    const PASSWORD = 'USFX2025';
-    if(pass === PASSWORD){
-      loginAdmin.style.display = 'none';
-      adminPanel.style.display = 'block';
-      cargarDatosAdmin();
-    } else {
-      alert('Contraseña incorrecta');
-    }
-  });
-  btnCancelLogin.addEventListener('click', ()=>{
-    loginAdmin.style.display = 'none';
-  });
-
-  // obtener datos desde Firestore y llenar tabla
-  async function cargarDatosAdmin(){
-    tablaBody.innerHTML = '';
-    currentAdminData = [];
-    try{
-      const snapshot = await db.collection('postulantes').orderBy('fecha','desc').get();
-      snapshot.forEach(doc=>{
-        const d = doc.data();
-        currentAdminData.push(d);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${escapeHtml(d.nombre)}</td>
-                        <td>${escapeHtml(d.celular)}</td>
-                        <td>${escapeHtml(d.carrera)}</td>
-                        <td>${escapeHtml(String(d.nota))}</td>
-                        <td>${escapeHtml(String(d.fecha))}</td>`;
-        tablaBody.appendChild(tr);
-      });
-    }catch(err){
-      alert('Error leyendo Firestore: ' + err.message);
-    }
-  }
-  btnRefresh.addEventListener('click', cargarDatosAdmin);
-
-  // exportar CSV desde currentAdminData
-  btnExport.addEventListener('click', ()=>{
-    if(!currentAdminData || currentAdminData.length === 0){
-      alert('No hay datos cargados. Presiona "Actualizar Datos" primero.');
-      return;
-    }
-    let csv = 'nombre;celular;carrera;nota;estado;fecha;totalPreguntas\n';
-    currentAdminData.forEach(d=>{
-      csv += `${escapeCsvCell(d.nombre)};${escapeCsvCell(d.celular)};${escapeCsvCell(d.carrera)};${escapeCsvCell(d.nota)};${escapeCsvCell(d.estado)};${escapeCsvCell(d.fecha)};${escapeCsvCell(d.totalPreguntas)}\n`;
-    });
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'resultados_postulantes.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  });
-
-  // ---------- utilidad: validar que preguntas cargaron (por si start presionado rápido) ----------
-  (async function initCheck(){
-    const ok = await loadQuestionsCSV();
-    // no hacemos nada más; solo pre-cargamos estado
-  })();
-
-  // ---------- helper: evitar perder examen con reload ----------
-  window.addEventListener('beforeunload', (e)=>{
-    if(examStarted){ e.preventDefault(); e.returnValue = ''; }
-  });
-
-  </script>
+    </script>
 </body>
 </html>
