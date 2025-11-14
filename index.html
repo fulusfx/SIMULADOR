@@ -107,6 +107,12 @@
 
 <div class="container" id="resultado" style="display:none;"></div>
 
+<div class="container" id="loginAdmin" style="display:block;">
+  <h2>Acceso Administrador</h2>
+  <input id="passAdmin" type="password" placeholder="Contraseña" />
+  <button onclick="accederAdmin()">Ingresar</button>
+</div>
+
 <div class="container" id="adminPanel">
   <h2>Panel Administrador</h2>
   <button onclick="cargarDatosAdmin()">Actualizar Datos</button>
@@ -222,6 +228,20 @@ async function finalizarExamen() {
 }
 
 function mostrarAdmin(){
+  document.getElementById("loginAdmin").style.display = "block";
+}
+
+function accederAdmin(){
+  const pass = document.getElementById('passAdmin').value;
+  if(pass === "USFX2025"){
+    document.getElementById('loginAdmin').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+  } else {
+    alert('Contraseña incorrecta');
+  }
+}
+
+function mostrarAdmin_old(){
   document.getElementById("adminPanel").style.display = "block";
 }
 
@@ -263,4 +283,3 @@ function descargarExcel(){
 </script>
 </body>
 </html>
-
