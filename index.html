@@ -1,150 +1,175 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Simulador de Examen de Biología</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f9fc; }
-    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    .hidden { display: none; }
-    .question { margin-bottom: 15px; }
-    .options label { display: block; margin: 4px 0; }
-    button { padding: 10px 16px; border: none; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
-    button[disabled] { opacity: 0.6; cursor: not-allowed; }
-    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#eee; margin-right:8px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador de Examen de Biología</title>
+<style>
+ body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+ .card { background: #fff; padding: 20px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+ .hidden { display: none; }
+ .btn { padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+ .btn:hover { background: #0f4fa8; }
+ .question { margin-bottom: 20px; padding: 15px; background: #fafafa; border-left: 4px solid #1976d2; border-radius: 5px; }
+</style>
 </head>
 <body>
-  <div class="card" id="startCard">
-    <h2>Datos del postulante</h2>
-    <label>Nombre completo</label>
-    <input id="nombre" type="text" />
-    <label>Celular</label>
-    <input id="celular" type="text" />
-    <label>Carrera</label>
-    <input id="carrera" type="text" />
-    <br><br>
-    <button id="startBtn">Comenzar examen</button>
-  </div>
+<div class="card" id="inicio">
+  <h2>Simulador de Examen de Biología</h2>
+  <label>Nombre Completo:</label><br>
+  <input type="text" id="nombre" style="width:100%"><br><br>
+  <label>Celular:</label><br>
+  <input type="text" id="celular" style="width:100%"><br><br>
+  <label>Carrera:</label><br>
+  <input type="text" id="carrera" style="width:100%"><br><br>
+  <button class="btn" onclick="iniciarExamen()">Iniciar Examen</button>
+</div>
 
-  <div class="card hidden" id="examCard">
-    <div>
-      <span class="pill">Tiempo: <span id="timer">40:00</span></span>
-      <span class="pill">Preguntas: <span id="count"></span>/40</span>
-    </div>
-    <div id="questions"></div>
-    <button id="finishBtn">Finalizar</button>
-  </div>
+<div class="card hidden" id="examen">
+  <h2>Examen en Progreso</h2>
+  <p><strong>Tiempo restante:</strong> <span id="timer">40:00</span></p>
+  <form id="formPreguntas"></form>
+  <button class="btn" onclick="finalizarExamen()">Finalizar</button>
+</div>
 
-  <div class="card hidden" id="resultCard">
-    <h2>Resultado</h2>
-    <p>Puntaje: <span id="score"></span> / 100</p>
-    <p>Estado: <span id="status"></span></p>
-    <button id="downloadCsvBtn">Descargar CSV</button>
-    <button onclick="location.reload()">Reiniciar</button>
-  </div>
+<div class="card hidden" id="resultado">
+  <h2>Resultado del Examen</h2>
+  <p id="textoResultado"></p>
+  <a id="descargaRegistro" class="btn" download="registro_postulantes.csv">Descargar Registro CSV</a>
+</div>
 
 <script>
-const TOTAL_QUESTIONS = 40;
-const POINTS_PER_QUESTION = 2.5;
-const DURATION_MINUTES = 40;
-let QUESTION_BANK = [];
-let selectedQuestions = [];
-let answers = {};
-let timerInterval, endTime;
+// ========================== CONFIGURACIÓN FIREBASE ==========================
+// Si deseas Firestore, debes crear un proyecto y rellenar estas claves:
+// (Opcional, si no quieres Firebase deja este objeto vacío y usaremos CSV virtual)
+const firebaseConfig = {
+  apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: ""
+};
+let usarFirebase = false;
 
-// 🔹 Cargar preguntas desde preguntas.csv
-async function loadQuestions() {
-  const response = await fetch("preguntas.csv");
-  const text = await response.text();
-  const rows = text.trim().split("\n");
-  QUESTION_BANK = rows.map(row => {
-    const [id, pregunta, A, B, C, D, correcta] = row.split(";");
-    return { id:Number(id), pregunta, A, B, C, D, correcta };
-  });
+// Intentar activar Firestore si hay configuración
+if (firebaseConfig.apiKey !== "") usarFirebase = true;
+
+if (usarFirebase) {
+  const app = firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
 }
-loadQuestions();
 
-// 🔹 Iniciar examen
-document.getElementById("startBtn").addEventListener("click", () => {
-  if (!QUESTION_BANK.length) { alert("Preguntas no cargadas aún."); return; }
+// ============================ VARIABLES GLOBALES ============================
+let preguntasTotales = [];
+let preguntasSeleccionadas = [];
+let tiempoRestante = 40 * 60; // 40 minutos
+let temporizador;
+let registros = "Nombre;Celular;Carrera;Nota\n";
+
+// ============================== CARGAR CSV ================================
+async function cargarCSV() {
+  const resp = await fetch("preguntas.csv");
+  const texto = await resp.text();
+  const lineas = texto.split("\n").slice(1); // saltar encabezado
+
+  preguntasTotales = lineas
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+    .map(l => {
+      const p = l.split(";");
+      return {
+        id: p[0],
+        pregunta: p[1],
+        A: p[2], B: p[3], C: p[4], D: p[5],
+        respuesta: p[6]
+      };
+    });
+}
+
+// ============================ INICIAR EXAMEN ===============================
+async function iniciarExamen() {
+  await cargarCSV();
+
   const nombre = document.getElementById("nombre").value.trim();
   const celular = document.getElementById("celular").value.trim();
   const carrera = document.getElementById("carrera").value.trim();
-  if (!nombre || !celular || !carrera) { alert("Completa todos los datos."); return; }
 
-  // Seleccionar 40 preguntas aleatorias
-  selectedQuestions = [...QUESTION_BANK].sort(() => Math.random()-0.5).slice(0,TOTAL_QUESTIONS);
+  if (!nombre || !celular || !carrera) {
+    alert("Completa todos los campos.");
+    return;
+  }
 
-  const container = document.getElementById("questions");
-  container.innerHTML = "";
-  selectedQuestions.forEach((q, idx) => {
-    const div = document.createElement("div");
-    div.className = "question";
-    div.innerHTML = `<strong>${idx+1}. ${q.pregunta}</strong>
-      <div class="options">
-        ${["A","B","C","D"].map(opt => `
-          <label><input type="radio" name="q_${q.id}" value="${opt}"> ${opt}: ${q[opt]}</label>
-        `).join("")}
-      </div>`;
-    container.appendChild(div);
+  document.getElementById("inicio").classList.add("hidden");
+  document.getElementById("examen").classList.remove("hidden");
+
+  // Selección aleatoria de 40 preguntas
+  preguntasSeleccionadas = preguntasTotales.sort(() => Math.random() - 0.5).slice(0, 40);
+
+  const form = document.getElementById("formPreguntas");
+  form.innerHTML = "";
+
+  preguntasSeleccionadas.forEach((p, i) => {
+    form.innerHTML += `
+      <div class="question">
+        <p><strong>${i+1}. ${p.pregunta}</strong></p>
+        <label><input type="radio" name="p${i}" value="A"> ${p.A}</label><br>
+        <label><input type="radio" name="p${i}" value="B"> ${p.B}</label><br>
+        <label><input type="radio" name="p${i}" value="C"> ${p.C}</label><br>
+        <label><input type="radio" name="p${i}" value="D"> ${p.D}</label><br>
+      </div>
+    `;
   });
 
-  document.getElementById("count").textContent = selectedQuestions.length;
-  document.getElementById("startCard").classList.add("hidden");
-  document.getElementById("examCard").classList.remove("hidden");
-
-  // Temporizador
-  endTime = Date.now() + DURATION_MINUTES*60*1000;
-  timerInterval = setInterval(() => {
-    const remaining = endTime - Date.now();
-    if (remaining <= 0) { clearInterval(timerInterval); finish(); }
-    const m = String(Math.floor(remaining/60000)).padStart(2,"0");
-    const s = String(Math.floor((remaining%60000)/1000)).padStart(2,"0");
-    document.getElementById("timer").textContent = `${m}:${s}`;
-  }, 1000);
-
-  container.addEventListener("change", e => {
-    const id = Number(e.target.name.split("_")[1]);
-    answers[id] = e.target.value;
-  });
-});
-
-// 🔹 Finalizar examen
-document.getElementById("finishBtn").addEventListener("click", finish);
-function finish() {
-  clearInterval(timerInterval);
-  let correct = 0;
-  selectedQuestions.forEach(q => {
-    if (answers[q.id] === q.correcta) correct++;
-  });
-  const score = (correct*POINTS_PER_QUESTION).toFixed(2);
-  let status = "No aprobado";
-  if (score > 81) status = "Admitido";
-  else if (score > 51) status = "Aprobado";
-
-  document.getElementById("score").textContent = score;
-  document.getElementById("status").textContent = status;
-  document.getElementById("examCard").classList.add("hidden");
-  document.getElementById("resultCard").classList.remove("hidden");
-
-  // CSV virtual
-  const csv = `Nombre,Celular,Carrera,Puntaje,Estado\n${document.getElementById("nombre").value},${document.getElementById("celular").value},${document.getElementById("carrera").value},${score},${status}`;
-  window.__lastCsv = csv;
+  iniciarTemporizador();
 }
 
-// 🔹 Descargar CSV
-document.getElementById("downloadCsvBtn").addEventListener("click", () => {
-  const blob = new Blob([window.__lastCsv], {type:"text/csv"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "resultado.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-});
+// ========================== TEMPORIZADOR ================================
+function iniciarTemporizador() {
+  temporizador = setInterval(() => {
+    tiempoRestante--;
+    const m = Math.floor(tiempoRestante / 60);
+    const s = tiempoRestante % 60;
+    document.getElementById("timer").textContent = `${m}:${s < 10 ? "0"+s : s}`;
+
+    if (tiempoRestante <= 0) finalizarExamen();
+  }, 1000);
+}
+
+// =========================== FINALIZAR EXAMEN =============================
+function finalizarExamen() {
+  clearInterval(temporizador);
+
+  let puntaje = 0;
+
+  preguntasSeleccionadas.forEach((p, i) => {
+    const marcado = document.querySelector(`input[name='p${i}']:checked`);
+    if (marcado && marcado.value === p.respuesta) {
+      puntaje += 2.5;
+    }
+  });
+
+  let estado = "Reprobado";
+  if (puntaje >= 81) estado = "Admitido";
+  else if (puntaje >= 51) estado = "Aprobado";
+
+  const nombre = document.getElementById("nombre").value;
+  const celular = document.getElementById("celular").value;
+  const carrera = document.getElementById("carrera").value;
+
+  registrarPostulante(nombre, celular, carrera, puntaje);
+
+  document.getElementById("examen").classList.add("hidden");
+  document.getElementById("resultado").classList.remove("hidden");
+  document.getElementById("textoResultado").innerHTML =
+    `<strong>Nota:</strong> ${puntaje}<br><strong>Resultado:</strong> ${estado}`;
+}
+
+// ============================= REGISTRO ===================================
+function registrarPostulante(nombre, celular, carrera, nota) {
+  if (usarFirebase) {
+    db.collection("postulantes").add({ nombre, celular, carrera, nota, fecha: new Date() });
+  } else {
+    registros += `${nombre};${celular};${carrera};${nota}\n`;
+    const blob = new Blob([registros], { type: "text/csv" });
+    document.getElementById("descargaRegistro").href = URL.createObjectURL(blob);
+  }
+}
 </script>
 </body>
 </html>
-
