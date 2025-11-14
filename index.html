@@ -43,7 +43,12 @@
 // Si deseas Firestore, debes crear un proyecto y rellenar estas claves:
 // (Opcional, si no quieres Firebase deja este objeto vacío y usaremos CSV virtual)
 const firebaseConfig = {
-  apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: ""
+  apiKey: "AIzaSyApKOiLEh8R0SatT0EluTRoPpQYGQ_bDnM",
+  authDomain: "simu-diego.firebaseapp.com",
+  projectId: "simu-diego",
+  storageBucket: "simu-diego.firebasestorage.app",
+  messagingSenderId: "304869129428",
+  appId: "1:304869129428:web:fca0d00bd230afad248f41"
 };
 let usarFirebase = false;
 
@@ -171,5 +176,44 @@ function registrarPostulante(nombre, celular, carrera, nota) {
   }
 }
 </script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    // TODO: RELLENAR CON TU CONFIGURACIÓN REAL DE FIREBASE
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Guardar datos del estudiante al terminar examen
+    async function guardarResultadoEnFirebase(nombre, celular, carrera, notaFinal) {
+      try {
+        await db.collection('postulantes').add({
+          nombre: nombre,
+          celular: celular,
+          carrera: carrera,
+          nota: notaFinal,
+          fecha: new Date().toISOString()
+        });
+        console.log("Guardado en Firebase correctamente");
+      } catch (error) {
+        console.error("Error al guardar en Firestore", error);
+      }
+    }
+
+    // Integración con el sistema existente del examen
+    // Llamar guardarResultadoEnFirebase(nombre, celular, carrera, notaFinal)
+    // justo cuando se calcule la nota
+  </script>
 </body>
 </html>
